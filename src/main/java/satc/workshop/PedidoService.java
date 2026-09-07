@@ -2,6 +2,7 @@ package satc.workshop;
 
 import java.util.Map;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -12,16 +13,11 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.sqs.SqsClient;
 
 @Service
+@RequiredArgsConstructor
 public class PedidoService {
     private final DynamoDbClient dynamo;
     private final SqsClient sqs;
     private final S3Client s3;
-
-    public PedidoService(DynamoDbClient dynamo, SqsClient sqs, S3Client s3) {
-        this.dynamo = dynamo;
-        this.sqs = sqs;
-        this.s3 = s3;
-    }
 
     private static AttributeValue texto(String valor) {
         return AttributeValue.builder().s(valor).build();

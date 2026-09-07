@@ -14,18 +14,21 @@ Explicar o fluxo com um pedido de caderno. HTTP 202 significa aceito, não concl
 
 ## 10–25 · Infraestrutura e clientes
 
-Digitar as quatro dependências do SDK no bloco `dependencies`:
+Digitar o BOM do SDK, o BOM do Spring Cloud AWS, o starter SQS e os clientes usados diretamente:
 
 ```groovy
 implementation platform('software.amazon.awssdk:bom:2.41.31')
+implementation platform('io.awspring.cloud:spring-cloud-aws-dependencies:4.1.0')
+implementation 'io.awspring.cloud:spring-cloud-aws-starter-sqs'
 implementation 'software.amazon.awssdk:dynamodb'
-implementation 'software.amazon.awssdk:sqs'
 implementation 'software.amazon.awssdk:s3'
+compileOnly 'org.projectlombok:lombok:1.18.48'
+annotationProcessor 'org.projectlombok:lombok:1.18.48'
 ```
 
 Digitar o `compose.yaml` da referência e criar `.env` com o token pessoal. Explicar: o container emula APIs AWS; o SDK usa HTTP para conversar com ele. Criar os recursos, explicitamente, com os quatro comandos Docker do README. Não usar scripts automáticos de provisionamento na aula.
 
-Digitar as propriedades e `AwsConfig.java`. Introduzir construtor, `@Configuration`, `@Bean` e os três clientes. `forcePathStyle(true)` faz o S3 usar o bucket no caminho da URL. O endereço é `http://localhost:4566`, a região `us-east-1`, as credenciais fictícias `test`.
+Digitar as propriedades e `AwsConfig.java`. Introduzir construtor, `@Configuration`, `@Bean` e os três clientes. O cliente SQS síncrono é usado para publicar; o starter cria um `SqsAsyncClient` para o listener. Usar `@RequiredArgsConstructor` nas classes com dependências `final` e `@Slf4j` no consumidor. `forcePathStyle(true)` faz o S3 usar o bucket no caminho da URL. O endereço é `http://localhost:4566`, a região `us-east-1`, as credenciais fictícias `test`.
 
 Checkpoint: `docker compose exec localstack awslocal s3 ls` mostra o bucket.
 
@@ -75,7 +78,20 @@ String comprovante = "COMPROVANTE DO PEDIDO\nID: %s\nCliente: %s\nProduto: %s\nQ
         .formatted(id, pedido.cliente(), pedido.produto(), pedido.quantidade());
 ```
 
-Criar `PedidoConsumer` com `@Component`, `@EnableScheduling`, condição de ativação e construtor. Digitar `consumir` da referência: receber uma mensagem, processar, excluir. O `try/catch` envolve processamento e exclusão. Se ocorrer erro, registrar e deixar a mensagem voltar após 30 segundos. Não excluir em `finally`.
+Criar `PedidoConsumer` com `@Component`, condição de ativação e construtor. Anotar `consumir(String pedidoId)` com `@SqsListener`: o Spring Cloud AWS mantém o long polling, entrega o corpo e confirma a mensagem automaticamente somente quando o método termina com sucesso. Se `processar` falhar, registrar e relançar a exceção; não engolir o erro, pois isso faria o framework considerar a mensagem processada. Após 30 segundos de visibilidade, o SQS pode entregá-la novamente.
+
+```java
+@SqsListener(value = "pedidos", maxConcurrentMessages = "1", maxMessagesPerPoll = "1",
+        pollTimeoutSeconds = "10", messageVisibilitySeconds = "30")
+public void consumir(String pedidoId) {
+    try {
+        service.processar(pedidoId);
+    } catch (RuntimeException e) {
+        log.error("Falha no pedido {}; mensagem será tentada novamente", pedidoId, e);
+        throw e;
+    }
+}
+```
 
 Checkpoint: o consumidor processa o pedido deixado na fila. Inspecionar:
 
@@ -85,7 +101,7 @@ docker compose exec localstack awslocal s3 ls s3://comprovantes/pedidos/
 
 ## 85–100 · Status e download
 
-Revisar a ordem S3 → DynamoDB → exclusão SQS. Digitar `comprovante` no serviço e o endpoint correspondente no controller. HTTP 409 indica que ainda está pendente. `Content-Disposition` pede ao navegador para baixar o arquivo.
+Revisar a ordem S3 → DynamoDB → confirmação automática do SQS. Digitar `comprovante` no serviço e o endpoint correspondente no controller. HTTP 409 indica que ainda está pendente. `Content-Disposition` pede ao navegador para baixar o arquivo.
 
 ```powershell
 Invoke-WebRequest "http://localhost:8080/pedidos/$($pedido.id)/comprovante" -OutFile comprovante.txt

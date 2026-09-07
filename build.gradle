@@ -20,10 +20,15 @@ repositories {
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 	implementation platform('software.amazon.awssdk:bom:2.41.31')
+	implementation platform('io.awspring.cloud:spring-cloud-aws-dependencies:4.1.0')
+	implementation 'io.awspring.cloud:spring-cloud-aws-starter-sqs'
 	implementation 'software.amazon.awssdk:dynamodb'
-	implementation 'software.amazon.awssdk:sqs'
 	implementation 'software.amazon.awssdk:s3'
+	compileOnly 'org.projectlombok:lombok:1.18.48'
+	annotationProcessor 'org.projectlombok:lombok:1.18.48'
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+	testCompileOnly 'org.projectlombok:lombok:1.18.48'
+	testAnnotationProcessor 'org.projectlombok:lombok:1.18.48'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 

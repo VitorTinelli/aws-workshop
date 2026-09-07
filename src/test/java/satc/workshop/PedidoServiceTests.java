@@ -67,20 +67,11 @@ class PedidoServiceTests {
         }
     }
 
-    @Test void consumidorSoExcluiDepoisDeProcessar() {
+    @Test void consumidorPropagaFalhaParaSqsTentarNovamente() {
         PedidoService processamento = mock(PedidoService.class);
-        when(processamento.filaUrl()).thenReturn("fila");
-        when(sqs.receiveMessage(any(Consumer.class))).thenReturn(ReceiveMessageResponse.builder()
-                .messages(Message.builder().body("x").receiptHandle("recibo").build()).build());
-        var consumer = new PedidoConsumer(processamento, sqs);
+        var consumer = new PedidoConsumer(processamento);
         doThrow(new RuntimeException("offline")).when(processamento).processar("x");
-        consumer.consumir();
-        verify(sqs, never()).deleteMessage(any(Consumer.class));
-        doNothing().when(processamento).processar("x");
-        clearInvocations(processamento, sqs);
-        consumer.consumir();
-        var ordem = inOrder(processamento, sqs);
-        ordem.verify(processamento).processar("x");
-        ordem.verify(sqs).deleteMessage(any(Consumer.class));
+        assertThrows(RuntimeException.class, () -> consumer.consumir("x"));
+        verify(processamento).processar("x");
     }
 }
