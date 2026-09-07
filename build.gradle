@@ -1,0 +1,37 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '4.1.1'
+	id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'satc'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	implementation platform('software.amazon.awssdk:bom:2.41.31')
+	implementation 'software.amazon.awssdk:dynamodb'
+	implementation 'software.amazon.awssdk:sqs'
+	implementation 'software.amazon.awssdk:s3'
+	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
+
+// Opcional: ./gradlew -Plambda lambdaZip
+if (project.hasProperty('lambda')) {
+	apply from: 'extras/lambda.gradle'
+}

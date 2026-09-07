@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Oficina Cloud · Pedidos</title>
+<style>
+  :root { font-family: system-ui,sans-serif; color: #182c32; background: #f2f5ef; }
+  * { box-sizing: border-box; }
+  body { margin: 0; } main { max-width: 960px; margin: auto; padding: 48px 24px; }
+  .tag { color: #387456; text-transform: uppercase; letter-spacing: .15em; font-size: 12px; font-weight: 700; }
+  h1 { font-size: clamp(32px,5vw,52px); letter-spacing: -.04em; margin: 16px 0; }
+  .intro { color: #53666b; max-width: 560px; line-height: 1.7; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 32px; }
+  section { background: white; border: 1px solid #dce4db; border-radius: 18px; padding: 28px; }
+  h2 { font-size: 20px; margin-top: 0; } label { display: block; font-size: 14px; margin: 18px 0 7px; }
+  input { width: 100%; padding: 12px; border: 1px solid #bccbc1; border-radius: 8px; font: inherit; }
+  button,.download { display: inline-block; background: #236344; color: white; border: 0; padding: 13px 18px; border-radius: 8px; font: inherit; cursor: pointer; margin-top: 22px; text-decoration: none; }
+  button:disabled { opacity: .5; cursor: wait; } :focus-visible { outline: 3px solid #dd9a27; outline-offset: 3px; }
+  #status { line-height: 1.6; } #id { overflow-wrap: anywhere; font: 12px monospace; }
+  .flow { margin-top: 28px; color: #53666b; font-size: 14px; line-height: 2; }
+  [hidden] { display: none !important; } @media(max-width: 650px) { .grid { grid-template-columns: 1fr; } }
+</style>
+<main>
+  <div class="tag">Workshop / Java + AWS local</div>
+  <h1>Um pedido. Uma jornada na nuvem.</h1>
+  <p class="intro">Cadastre seu pedido e acompanhe o processamento. Quando estiver pronto, baixe seu comprovante.</p>
+  <div class="grid">
+    <section><h2>01 · Novo pedido</h2>
+      <form id="form">
+        <label for="cliente">Seu nome</label><input id="cliente" required maxlength="100" autocomplete="name" placeholder="Ex.: Ana Silva">
+        <label for="produto">Produto</label><input id="produto" required maxlength="100" placeholder="Ex.: Caderno">
+        <label for="quantidade">Quantidade</label><input id="quantidade" type="number" required min="1" max="10000" value="1">
+        <button id="enviar">Criar pedido</button>
+      </form>
+    </section>
+    <section><h2>02 · Acompanhe</h2>
+      <div role="status" aria-live="polite"><p id="status">Seu pedido aparecerá aqui.</p><p id="id"></p></div>
+      <button id="consultar" hidden>Consultar novamente</button>
+      <a id="download" class="download" hidden>Baixar comprovante</a>
+    </section>
+  </div>
+  <p class="flow">DynamoDB guarda o pedido → SQS organiza o processamento → S3 armazena o comprovante.</p>
+</main>
+<script>
+  const el = id => document.getElementById(id);
+  let pedidoId, rodada = 0;
+  async function api(url, options) {
+    const response = await fetch(url, { ...options, signal: AbortSignal.timeout(8000) });
+    if (!response.ok) throw new Error(`Não foi possível concluir a operação (HTTP ${response.status}).`);
+    return response.json();
+  }
+  async function acompanhar() {
+    const atual = ++rodada;
+    const limite = Date.now() + 60000;
+    el('consultar').hidden = true;
+    el('status').textContent = 'Pedido pendente. Aguardando processamento…';
+    while (atual === rodada && Date.now() < limite) {
+      try {
+        const pedido = await api('/pedidos/' + encodeURIComponent(pedidoId));
+        if (atual !== rodada) return;
+        if (pedido.status === 'CONCLUIDO') {
+          el('status').textContent = 'Tudo pronto! Seu comprovante já está disponível.';
+          el('download').href = '/pedidos/' + encodeURIComponent(pedidoId) + '/comprovante';
+          el('download').hidden = false;
+          return;
+        }
+      } catch (error) {
+        if (atual !== rodada) return;
+        el('status').textContent = error.message + ' Tente consultar novamente.';
+        el('consultar').hidden = false;
+        return;
+      }
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+    if (atual === rodada) {
+      el('status').textContent = 'O processamento ainda não terminou. Você pode consultar novamente.';
+      el('consultar').hidden = false;
+    }
+  }
+  el('form').addEventListener('submit', async event => {
+    event.preventDefault(); ++rodada;
+    el('enviar').disabled = true;
+    el('download').hidden = true; el('consultar').hidden = true; el('id').textContent = '';
+    el('status').textContent = 'Enviando pedido…';
+    try {
+      const pedido = await api('/pedidos', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cliente: el('cliente').value, produto: el('produto').value, quantidade: Number(el('quantidade').value) }) });
+      pedidoId = pedido.id; el('id').textContent = 'ID: ' + pedidoId;
+      acompanhar();
+    } catch (error) { el('status').textContent = error.message; }
+    finally { el('enviar').disabled = false; }
+  });
+  el('consultar').addEventListener('click', acompanhar);
+</script>
+</html>

@@ -1,0 +1,26 @@
+// Aplicar somente ao fazer a extensão: apply from: 'extras/lambda.gradle'
+sourceSets {
+    lambda {
+        java.srcDir 'extras/lambda'
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
+configurations {
+    lambdaImplementation.extendsFrom implementation
+    lambdaRuntimeOnly.extendsFrom runtimeOnly
+}
+dependencies {
+    lambdaImplementation 'com.amazonaws:aws-lambda-java-core:1.2.3'
+    lambdaImplementation 'com.amazonaws:aws-lambda-java-events:3.16.1'
+}
+tasks.register('lambdaZip', Zip) {
+    dependsOn tasks.named('lambdaClasses'), tasks.named('jar')
+    archiveFileName = 'pedidos-lambda.zip'
+    destinationDirectory = layout.buildDirectory.dir('distributions')
+    into('lib') {
+        from tasks.named('jar')
+        from configurations.lambdaRuntimeClasspath
+    }
+    from sourceSets.lambda.output
+}
