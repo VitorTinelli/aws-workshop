@@ -1,4 +1,4 @@
-package satc.workshop;
+package satc.workshop.pedido;
 
 import java.util.Map;
 import java.util.UUID;

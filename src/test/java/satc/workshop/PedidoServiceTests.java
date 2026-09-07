@@ -7,13 +7,15 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import org.springframework.web.server.ResponseStatusException;
+import satc.workshop.pedido.Pedido;
+import satc.workshop.pedido.PedidoConsumer;
+import satc.workshop.pedido.PedidoService;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.sqs.SqsClient;
-import software.amazon.awssdk.services.sqs.model.*;
 
 class PedidoServiceTests {
     private final DynamoDbClient dynamo = mock(DynamoDbClient.class);

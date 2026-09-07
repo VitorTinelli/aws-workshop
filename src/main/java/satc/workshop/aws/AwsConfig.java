@@ -1,4 +1,4 @@
-package satc.workshop;
+package satc.workshop.aws;
 
 import java.net.URI;
 import org.springframework.beans.factory.annotation.Value;

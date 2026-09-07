@@ -35,8 +35,3 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
-
-// Opcional: ./gradlew -Plambda lambdaZip
-if (project.hasProperty('lambda')) {
-	apply from: 'extras/lambda.gradle'
-}

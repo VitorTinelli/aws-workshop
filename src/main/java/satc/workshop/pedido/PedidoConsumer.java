@@ -1,4 +1,4 @@
-package satc.workshop;
+package satc.workshop.pedido;
 
 import io.awspring.cloud.sqs.annotation.SqsListener;
 import lombok.RequiredArgsConstructor;

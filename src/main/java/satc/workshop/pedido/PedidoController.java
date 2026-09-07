@@ -1,4 +1,4 @@
-package satc.workshop;
+package satc.workshop.pedido;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;

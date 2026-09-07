@@ -3,39 +3,28 @@
 Referência para uma aula de duas horas: Java 21, Spring Boot, Spring Cloud AWS, Lombok, DynamoDB, SQS e S3 no LocalStack. Os alunos começam no Spring Initializr; somente `src/main/resources/static/index.html` é distribuído pronto.
 
 - [Roteiro da aula](docs/ROTEIRO.md)
-- [Extensão Lambda](docs/LAMBDA.md)
-- [Validação e ensaio](docs/VALIDACAO.md)
 
 ## Executar a referência
 
-Use JDK 21 no terminal e na IDE, Docker Desktop com containers Linux e conta/token LocalStack. Copie `.env.example` para `.env` e preencha seu token (não versionar).
+Use JDK 21 no terminal e na IDE e Docker Desktop com containers Linux. Esta referência usa LocalStack 3.4.0, sem token de autenticação.
 
 ```powershell
 docker compose up -d localstack --wait
-docker compose exec localstack awslocal dynamodb create-table --table-name pedidos --attribute-definitions AttributeName=id,AttributeType=S --key-schema AttributeName=id,KeyType=HASH --billing-mode PAY_PER_REQUEST
-docker compose exec localstack awslocal sqs create-queue --queue-name pedidos
-docker compose exec localstack awslocal s3 mb s3://comprovantes
 docker compose up -d --build app
 ```
 
-Abra http://localhost:8080. O build da imagem executa os testes antes de gerar o JAR; se algum teste falhar, a imagem da aplicação não é criada. Os comandos `awslocal` rodam dentro do container, sem configurar credenciais reais na máquina. Execute a criação dos recursos uma vez por ambiente vazio. O Compose não habilita persistência: não dependa dos dados após recriar o container.
+Abra http://localhost:8080. O build da imagem executa os testes antes de gerar o JAR; se algum teste falhar, a imagem da aplicação não é criada. Ao iniciar, a aplicação cria a fila SQS, a tabela DynamoDB e o bucket S3 quando eles ainda não existem. O Compose não habilita persistência: não dependa dos dados após recriar o container.
 
 ## Verificação completa após o envio
 
-Execute em PowerShell, na raiz do projeto. Primeiro configure `.env` com seu token do LocalStack.
+Execute em PowerShell, na raiz do projeto.
 
 ```powershell
-Copy-Item .env.example .env
-notepad .env
-
 # Testes Java isolados dentro de uma imagem Docker
 docker build --target test -t workshop-pedidos:test .
 
-# LocalStack; aguarde o healthcheck antes de criar os recursos
+# LocalStack; aguarde o healthcheck antes de iniciar a aplicação
 docker compose up -d localstack --wait
-docker compose exec localstack awslocal dynamodb create-table --table-name pedidos --attribute-definitions AttributeName=id,AttributeType=S --key-schema AttributeName=id,KeyType=HASH --billing-mode PAY_PER_REQUEST
-docker compose exec localstack awslocal sqs create-queue --queue-name pedidos
-docker compose exec localstack awslocal s3 mb s3://comprovantes
 
 # Aplicação Spring Boot em container
 docker compose up -d --build app
@@ -100,4 +89,4 @@ Não é um sistema de pagamentos. Não há autenticação, DLQ ou transação en
 
 Clientes AWS usam endpoint explícito, região `us-east-1` e credenciais fictícias `test`. O material é exclusivamente local.
 
-Referências: [SDK Java com Gradle](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/setup-project-gradle.html), [autenticação LocalStack](https://docs.localstack.cloud/aws/getting-started/auth-token/), [Lambda LocalStack](https://docs.localstack.cloud/aws/services/lambda/).
+Referências: [SDK Java com Gradle](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/setup-project-gradle.html).
